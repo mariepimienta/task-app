@@ -33,7 +33,8 @@ export function WeeklyView() {
     if (!tasksLoading) {
       ensureCurrentWeekExists();
     }
-  }, [tasksLoading, ensureCurrentWeekExists]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasksLoading]);
 
   if (tasksLoading || settingsLoading) {
     return (

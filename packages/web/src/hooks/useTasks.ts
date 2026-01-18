@@ -27,11 +27,7 @@ export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       const loadedTasks = await storage.getTasks();
       setTasks(loadedTasks);
@@ -40,16 +36,20 @@ export function useTasks() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const saveTasks = async (newTasks: Task[]) => {
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
+  const saveTasks = useCallback(async (newTasks: Task[]) => {
     try {
       await storage.saveTasks(newTasks);
       setTasks(newTasks);
     } catch (error) {
       console.error('Error saving tasks:', error);
     }
-  };
+  }, []);
 
   const addTask = useCallback(
     async (
@@ -66,7 +66,7 @@ export function useTasks() {
       });
       await saveTasks([...tasks, newTask]);
     },
-    [tasks]
+    [tasks, saveTasks]
   );
 
   const toggleTask = useCallback(
@@ -76,7 +76,7 @@ export function useTasks() {
       );
       await saveTasks(updatedTasks);
     },
-    [tasks]
+    [tasks, saveTasks]
   );
 
   const updateTaskDetails = useCallback(
@@ -86,7 +86,7 @@ export function useTasks() {
       );
       await saveTasks(updatedTasks);
     },
-    [tasks]
+    [tasks, saveTasks]
   );
 
   const updateTaskTitle = useCallback(
@@ -101,7 +101,7 @@ export function useTasks() {
       const updatedTasks = deleteTaskHelper(tasks, taskId);
       await saveTasks(updatedTasks);
     },
-    [tasks]
+    [tasks, saveTasks]
   );
 
   const getTasksForDayAndTime = useCallback(
@@ -124,7 +124,7 @@ export function useTasks() {
   const loadSampleData = useCallback(async () => {
     const sampleTasks = generateSampleTasks();
     await saveTasks(sampleTasks);
-  }, []);
+  }, [saveTasks]);
 
   const moveTask = useCallback(
     async (taskId: string, newDayOfWeek: DayOfWeek, newTimeOfDay: TimeOfDay, targetIndex?: number) => {
@@ -178,7 +178,7 @@ export function useTasks() {
 
       await saveTasks(updatedTasks);
     },
-    [tasks]
+    [tasks, saveTasks]
   );
 
   const getAvailableWeeks = useCallback(() => {
@@ -198,7 +198,7 @@ export function useTasks() {
       await saveTasks([...tasks, ...newWeekTasks]);
       return weekStartDate;
     },
-    [tasks]
+    [tasks, saveTasks]
   );
 
   const createNextWeek = useCallback(async () => {
@@ -226,7 +226,7 @@ export function useTasks() {
       const updatedTasks = tasks.filter(task => task.weekStartDate !== weekStartDate);
       await saveTasks(updatedTasks);
     },
-    [tasks]
+    [tasks, saveTasks]
   );
 
   return {
