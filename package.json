@@ -11,6 +11,7 @@
     "shared": "npm run build --workspace=shared"
   },
   "devDependencies": {
+    "eas-cli": "^16.28.0",
     "typescript": "^5.3.3"
   }
 }
