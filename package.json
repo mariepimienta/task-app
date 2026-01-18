@@ -1,0 +1,16 @@
+{
+  "name": "task-app",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm run start --workspace=mobile",
+    "web": "npm run dev --workspace=web",
+    "shared": "npm run build --workspace=shared"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

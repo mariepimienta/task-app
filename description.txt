@@ -1,0 +1,6 @@
+I want to build my own task managing app that I can use both on my phone(iphone) and my desktop. 
+Here's some features that I would like in V1:
+- i like having a weekly schdule so some tasks I'd like to be recurring, 
+with the ability to move or deleted them in the week (I added a sample picture under sample.png)
+- I also like to see my calendar events within this weekly spread but maybe they should be a different color 
+- I would also like the ability to show or hide the tasks/calendar events 
