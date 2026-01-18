@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { generateSampleTasks, getCurrentWeekStart, getWeekRangeFromStart } from '../../../shared/src/index';
+import { useState, useEffect } from 'react';
+import { getCurrentWeekStart, getWeekRangeFromStart } from '../../../shared/src/index';
 import type { DayOfWeek } from '../../../shared/src/index';
 import { useTasks } from '../hooks/useTasks';
 import { useSettings } from '../hooks/useSettings';
@@ -19,8 +19,6 @@ export function WeeklyView() {
     loadSampleData,
     moveTask,
     updateTaskTitle,
-    getTasksForDayAndTime,
-    getChildTasksForParent,
     getAvailableWeeks,
     createNextWeek,
     ensureCurrentWeekExists,

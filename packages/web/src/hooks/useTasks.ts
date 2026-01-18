@@ -10,7 +10,6 @@ import {
   getChildTasks,
   generateSampleTasks,
   getTemplateTasks,
-  getTasksForWeek,
   createWeekFromTemplate,
   getCurrentWeekStart,
   getNextWeekStart,

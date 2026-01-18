@@ -1,4 +1,4 @@
-import { Task, CalendarEvent, AppSettings, IStorage } from '../types';
+import type { Task, CalendarEvent, AppSettings, IStorage } from '../types';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   wakeUpTime: '6am',
@@ -15,15 +15,15 @@ export abstract class BaseStorage implements IStorage {
   abstract getCalendarEvents(): Promise<CalendarEvent[]>;
   abstract saveCalendarEvents(events: CalendarEvent[]): Promise<void>;
 
-  protected async getItem(key: string): Promise<string | null> {
+  protected async getItem(_key: string): Promise<string | null> {
     throw new Error('getItem must be implemented by platform-specific storage');
   }
 
-  protected async setItem(key: string, value: string): Promise<void> {
+  protected async setItem(_key: string, _value: string): Promise<void> {
     throw new Error('setItem must be implemented by platform-specific storage');
   }
 
-  protected async removeItem(key: string): Promise<void> {
+  protected async removeItem(_key: string): Promise<void> {
     throw new Error('removeItem must be implemented by platform-specific storage');
   }
 }

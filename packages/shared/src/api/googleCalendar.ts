@@ -1,4 +1,4 @@
-import { CalendarEvent } from '../types';
+import type { CalendarEvent } from '../types';
 
 export interface GoogleCalendarConfig {
   accessToken: string;

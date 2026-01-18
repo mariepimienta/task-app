@@ -1,4 +1,4 @@
-import { Task, DayOfWeek, TimeOfDay } from '../types';
+import type { Task } from '../types';
 import { createTask } from './taskHelpers';
 import { getCurrentWeekStart } from './dateHelpers';
 

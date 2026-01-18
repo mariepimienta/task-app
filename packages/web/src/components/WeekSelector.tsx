@@ -1,5 +1,3 @@
-import React from 'react';
-import type { WeekRange } from '../../../shared/src/index';
 import { getWeekRangeFromStart, getCurrentWeekStart } from '../../../shared/src/index';
 import './WeekSelector.css';
 

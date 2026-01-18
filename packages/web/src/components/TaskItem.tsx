@@ -71,7 +71,7 @@ export function TaskItem({ task, onToggle, onPress, childTasks = [], isCalendarE
         draggable={!isCalendarEvent && !task.parentTaskId && !isEditing}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onClick={(e) => {
+        onClick={() => {
           // Don't toggle if we're editing or starting a drag
           if (!isDragging && !isEditing) {
             onToggle(task.id);

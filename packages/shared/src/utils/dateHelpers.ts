@@ -9,9 +9,8 @@ import {
   startOfYear,
   addWeeks,
   isBefore,
-  isAfter,
 } from 'date-fns';
-import { DayOfWeek } from '../types';
+import type { DayOfWeek } from '../types';
 
 export interface WeekRange {
   start: Date;

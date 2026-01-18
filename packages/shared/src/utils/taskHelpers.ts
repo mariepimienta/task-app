@@ -1,4 +1,4 @@
-import { Task, DayOfWeek, TimeOfDay } from '../types';
+import type { Task, DayOfWeek, TimeOfDay } from '../types';
 
 export function generateTaskId(): string {
   return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
