@@ -43,3 +43,31 @@
 .toggle-button:active {
   background-color: #e8e8e8;
 }
+
+.calendar-connect-button {
+  padding: 6px 12px;
+  background-color: #007AFF;
+  color: white;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.calendar-connect-button:hover {
+  background-color: #0066DD;
+}
+
+.calendar-connect-button:active {
+  background-color: #0055BB;
+}
+
+.calendar-connect-button.connected {
+  background-color: #34C759;
+}
+
+.calendar-connect-button.connected:hover {
+  background-color: #30B350;
+}

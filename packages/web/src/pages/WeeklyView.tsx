@@ -3,6 +3,7 @@ import { getCurrentWeekStart, getWeekRangeFromStart } from '../../../shared/src/
 import type { DayOfWeek } from '../../../shared/src/index';
 import { useTasks } from '../hooks/useTasks';
 import { useSettings } from '../hooks/useSettings';
+import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { Header } from '../components/Header';
 import { DayColumn } from '../components/DayColumn';
 import { WeekSelector } from '../components/WeekSelector';
@@ -25,6 +26,11 @@ export function WeeklyView() {
     deleteWeek,
   } = useTasks();
   const { settings, loading: settingsLoading, toggleShowTasks, toggleShowCalendarEvents } = useSettings();
+  const {
+    isConnected: isCalendarConnected,
+    connectGoogleCalendar,
+    disconnectGoogleCalendar,
+  } = useGoogleCalendar();
 
   const [selectedWeek, setSelectedWeek] = useState<string | 'template'>(getCurrentWeekStart());
 
@@ -130,6 +136,9 @@ export function WeeklyView() {
           onToggleShowTasks={toggleShowTasks}
           onToggleShowCalendarEvents={toggleShowCalendarEvents}
           weekTitle={viewTitle}
+          isCalendarConnected={isCalendarConnected}
+          onConnectCalendar={connectGoogleCalendar}
+          onDisconnectCalendar={disconnectGoogleCalendar}
         />
 
         <div className="days-container">
