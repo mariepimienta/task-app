@@ -50,13 +50,27 @@ export class GoogleCalendarAPI {
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Google Calendar API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+        });
+
         if (response.status === 401) {
           throw new Error('Unauthorized - token may be expired');
         }
-        throw new Error(`Failed to fetch events: ${response.statusText}`);
+        throw new Error(`Failed to fetch events: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      const data = await response.json() as { items: any[] };
+      const data = await response.json() as { items?: any[] };
+
+      console.log('Google Calendar API Response:', data);
+
+      if (!data.items || data.items.length === 0) {
+        console.log('No calendar events found in the specified date range');
+        return [];
+      }
 
       return data.items.map((item: any) => ({
         id: item.id,
@@ -142,6 +156,8 @@ export async function exchangeCodeForTokens(
   clientSecret: string,
   redirectUri: string
 ): Promise<{ accessToken: string; refreshToken: string; expiryDate: number }> {
+  console.log('🔄 Exchanging authorization code for tokens...');
+
   try {
     const response = await fetch(GOOGLE_OAUTH_CONFIG.tokenUrl, {
       method: 'POST',
@@ -158,18 +174,34 @@ export async function exchangeCodeForTokens(
     });
 
     if (!response.ok) {
-      throw new Error('Failed to exchange code for tokens');
+      const errorText = await response.text();
+      console.error('Token exchange failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+      });
+      throw new Error(`Failed to exchange code for tokens: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json() as { access_token: string; refresh_token: string; expires_in: number };
+    const data = await response.json() as { access_token: string; refresh_token?: string; expires_in: number };
+
+    console.log('✅ Token exchange successful:', {
+      hasAccessToken: !!data.access_token,
+      hasRefreshToken: !!data.refresh_token,
+      expiresIn: data.expires_in,
+    });
+
+    if (!data.refresh_token) {
+      console.warn('⚠️ No refresh token received! This may cause issues when the access token expires.');
+    }
 
     return {
       accessToken: data.access_token,
-      refreshToken: data.refresh_token,
+      refreshToken: data.refresh_token || '',
       expiryDate: Date.now() + data.expires_in * 1000,
     };
   } catch (error) {
-    console.error('Error exchanging code for tokens:', error);
+    console.error('❌ Error exchanging code for tokens:', error);
     throw error;
   }
 }

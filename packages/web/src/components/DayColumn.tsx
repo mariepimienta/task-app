@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { Task, DayOfWeek, TimeOfDay } from '../../../shared/src/index';
+import type { Task, DayOfWeek, TimeOfDay, CalendarEvent } from '../../../shared/src/index';
+import { formatTime } from '../../../shared/src/index';
 import { TaskItem } from './TaskItem';
 import './DayColumn.css';
 
@@ -9,6 +10,10 @@ interface DayColumnProps {
     am: Task[];
     pm: Task[];
   };
+  calendarEvents?: {
+    am: CalendarEvent[];
+    pm: CalendarEvent[];
+  };
   onToggleTask: (taskId: string) => void;
   getChildTasks: (parentId: string) => Task[];
   onDropTask?: (taskId: string, dayOfWeek: DayOfWeek, timeOfDay: TimeOfDay, targetIndex?: number) => void;
@@ -16,7 +21,7 @@ interface DayColumnProps {
   onUpdateTaskTitle?: (taskId: string, newTitle: string) => void;
 }
 
-export function DayColumn({ dayOfWeek, tasks, onToggleTask, getChildTasks, onDropTask, onAddTask, onUpdateTaskTitle }: DayColumnProps) {
+export function DayColumn({ dayOfWeek, tasks, calendarEvents, onToggleTask, getChildTasks, onDropTask, onAddTask, onUpdateTaskTitle }: DayColumnProps) {
   const dayLabel = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
   const [dragOverSection, setDragOverSection] = useState<TimeOfDay | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -122,6 +127,13 @@ export function DayColumn({ dayOfWeek, tasks, onToggleTask, getChildTasks, onDro
         onDrop={(e) => handleDrop(e, 'am')}
       >
         <div className="time-label">AM</div>
+        {/* Render calendar events */}
+        {calendarEvents?.am.map(event => (
+          <div key={event.id} className="calendar-event-item">
+            <div className="calendar-event-time">{formatTime(new Date(event.startTime))}</div>
+            <div className="calendar-event-title">{event.title}</div>
+          </div>
+        ))}
         {tasks.am.length > 0 ? (
           tasks.am.map((task, index) => (
             <React.Fragment key={task.id}>
@@ -137,7 +149,7 @@ export function DayColumn({ dayOfWeek, tasks, onToggleTask, getChildTasks, onDro
             </React.Fragment>
           ))
         ) : (
-          !isAddingTask.section && <div className="empty-text">No tasks</div>
+          !isAddingTask.section && !calendarEvents?.am.length && <div className="empty-text">No tasks</div>
         )}
         {dragOverSection === 'am' && dragOverIndex === tasks.am.length && (
           <div className="drop-indicator" />
@@ -170,6 +182,13 @@ export function DayColumn({ dayOfWeek, tasks, onToggleTask, getChildTasks, onDro
         onDrop={(e) => handleDrop(e, 'pm')}
       >
         <div className="time-label">PM</div>
+        {/* Render calendar events */}
+        {calendarEvents?.pm.map(event => (
+          <div key={event.id} className="calendar-event-item">
+            <div className="calendar-event-time">{formatTime(new Date(event.startTime))}</div>
+            <div className="calendar-event-title">{event.title}</div>
+          </div>
+        ))}
         {tasks.pm.length > 0 ? (
           tasks.pm.map((task, index) => (
             <React.Fragment key={task.id}>
@@ -185,7 +204,7 @@ export function DayColumn({ dayOfWeek, tasks, onToggleTask, getChildTasks, onDro
             </React.Fragment>
           ))
         ) : (
-          !isAddingTask.section && <div className="empty-text">No tasks</div>
+          !isAddingTask.section && !calendarEvents?.pm.length && <div className="empty-text">No tasks</div>
         )}
         {dragOverSection === 'pm' && dragOverIndex === tasks.pm.length && (
           <div className="drop-indicator" />

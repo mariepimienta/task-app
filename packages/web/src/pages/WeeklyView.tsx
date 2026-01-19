@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getCurrentWeekStart, getWeekRangeFromStart } from '../../../shared/src/index';
+import { parseISO } from 'date-fns';
+import { getCurrentWeekStart, getWeekRangeFromStart, getDateForDayOfWeek, getTimeOfDayFromDate } from '../../../shared/src/index';
 import type { DayOfWeek } from '../../../shared/src/index';
 import { useTasks } from '../hooks/useTasks';
 import { useSettings } from '../hooks/useSettings';
@@ -28,6 +29,7 @@ export function WeeklyView() {
   const { settings, loading: settingsLoading, toggleShowTasks, toggleShowCalendarEvents } = useSettings();
   const {
     isConnected: isCalendarConnected,
+    calendarEvents,
     connectGoogleCalendar,
     disconnectGoogleCalendar,
   } = useGoogleCalendar();
@@ -65,6 +67,28 @@ export function WeeklyView() {
 
   const getChildTasksForWeek = (parentId: string) => {
     return weekTasks.filter(t => t.parentTaskId === parentId).sort((a, b) => a.order - b.order);
+  };
+
+  const getDayCalendarEvents = (day: DayOfWeek) => {
+    if (!settings.showCalendarEvents || selectedWeek === 'template') {
+      return { am: [], pm: [] };
+    }
+
+    // Get the date for this day of the week
+    const weekStart = parseISO(selectedWeek);
+    const dayDate = getDateForDayOfWeek(day, weekStart);
+
+    // Filter events for this day
+    const dayEvents = calendarEvents.filter(event => {
+      const eventDate = new Date(event.startTime);
+      return eventDate.toDateString() === dayDate.toDateString();
+    });
+
+    // Split into AM/PM
+    return {
+      am: dayEvents.filter(event => getTimeOfDayFromDate(new Date(event.startTime)) === 'am'),
+      pm: dayEvents.filter(event => getTimeOfDayFromDate(new Date(event.startTime)) === 'pm'),
+    };
   };
 
   const handleAddTask = async (dayOfWeek: DayOfWeek, timeOfDay: 'am' | 'pm', title: string) => {
@@ -147,6 +171,7 @@ export function WeeklyView() {
               key={day}
               dayOfWeek={day}
               tasks={getDayTasks(day)}
+              calendarEvents={getDayCalendarEvents(day)}
               onToggleTask={toggleTask}
               getChildTasks={getChildTasksForWeek}
               onDropTask={moveTask}

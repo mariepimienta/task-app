@@ -96,3 +96,24 @@
 .add-task-input::placeholder {
   color: #999;
 }
+
+.calendar-event-item {
+  background-color: #e3f2fd;
+  border-left: 3px solid #2196F3;
+  padding: 8px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.calendar-event-time {
+  font-size: 11px;
+  color: #1976D2;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.calendar-event-title {
+  color: #0D47A1;
+  font-weight: 500;
+}
