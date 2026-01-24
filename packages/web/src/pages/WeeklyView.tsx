@@ -137,18 +137,12 @@ export function WeeklyView() {
   };
 
   const handleSaveTemplateToAllWeeks = async () => {
-    const weeks = getAvailableWeeks();
-    if (weeks.length === 0) {
-      alert('No weeks exist yet. Create a week first to use this feature.');
+    if (!confirm('This will apply the template to the current week and any future weeks. Past weeks will not be changed. Continue?')) {
       return;
     }
 
-    if (!confirm(`This will update all ${weeks.length} existing week(s) with the current template. This action cannot be undone. Continue?`)) {
-      return;
-    }
-
-    await updateAllWeeksFromTemplate();
-    alert(`Successfully updated ${weeks.length} week(s) from template!`);
+    const updatedCount = await updateAllWeeksFromTemplate();
+    alert(`Successfully updated ${updatedCount} week(s) from template!`);
   };
 
   const handleDeleteCurrentWeek = async () => {

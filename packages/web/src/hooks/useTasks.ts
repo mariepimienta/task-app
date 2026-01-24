@@ -232,21 +232,22 @@ export function useTasks() {
   const updateAllWeeksFromTemplate = useCallback(
     async () => {
       const templateTasks = getTemplateTasks(tasks);
-      const weeks = getAvailableWeeks();
+      const currentWeekStart = getCurrentWeekStart();
 
-      if (weeks.length === 0) return;
+      // Keep only: template tasks + past week tasks
+      const tasksToKeep = tasks.filter(task =>
+        task.weekStartDate === 'template' ||
+        (task.weekStartDate && task.weekStartDate < currentWeekStart)
+      );
 
-      // Keep template, recreate all week tasks
-      const updatedTasks: Task[] = [...templateTasks];
+      // Recreate current week from template
+      const currentWeekTasks = createWeekFromTemplate(templateTasks, currentWeekStart);
 
-      weeks.forEach(weekStartDate => {
-        const newWeekTasks = createWeekFromTemplate(templateTasks, weekStartDate);
-        updatedTasks.push(...newWeekTasks);
-      });
-
-      await saveTasks(updatedTasks);
+      // Save: template + past weeks + new current week
+      await saveTasks([...tasksToKeep, ...currentWeekTasks]);
+      return 1;
     },
-    [tasks, getAvailableWeeks, saveTasks]
+    [tasks, saveTasks]
   );
 
   return {

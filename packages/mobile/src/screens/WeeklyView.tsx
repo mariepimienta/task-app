@@ -9,6 +9,7 @@ import { Header } from '../components/Header';
 import { DayColumn } from '../components/DayColumn';
 import { WeekSelector } from '../components/WeekSelector';
 import { AddTaskModal } from '../components/AddTaskModal';
+import { TaskActionModal } from '../components/TaskActionModal';
 
 const DAYS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -18,6 +19,8 @@ export function WeeklyView() {
     loading: tasksLoading,
     toggleTask,
     addTask,
+    updateTaskDetails,
+    deleteTask,
     getAvailableWeeks,
     createNextWeek,
     createNewWeek,
@@ -39,6 +42,8 @@ export function WeeklyView() {
   const [addTaskModalVisible, setAddTaskModalVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState<DayOfWeek | null>(null);
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<TimeOfDay | null>(null);
+  const [actionModalVisible, setActionModalVisible] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   useEffect(() => {
     if (!tasksLoading) {
@@ -58,9 +63,9 @@ export function WeeklyView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedWeek, tasksLoading]);
 
-  // Handle OAuth callback (for web preview mode)
+  // Handle OAuth callback (for web preview mode only)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.location?.search) {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const error = urlParams.get('error');
@@ -87,10 +92,10 @@ export function WeeklyView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch calendar events when connected or week changes
+  // Fetch calendar events when connected or week changes (silent mode - don't show errors)
   useEffect(() => {
     if (isCalendarConnected && selectedWeek !== 'template') {
-      fetchCalendarEvents();
+      fetchCalendarEvents(undefined, true); // silent = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCalendarConnected, selectedWeek]);
@@ -147,27 +152,30 @@ export function WeeklyView() {
   };
 
 
-  const handleSaveTemplateToAllWeeks = () => {
-    const weeks = getAvailableWeeks();
-    if (weeks.length === 0) {
-      Alert.alert('No Weeks', 'No weeks exist yet. Create a week first to use this feature.');
-      return;
-    }
+  const handleSaveTemplateToAllWeeks = async () => {
+    // Use window.confirm for web, Alert for native
+    const shouldUpdate = typeof window !== 'undefined' && window.confirm
+      ? window.confirm('This will apply the template to the current week and any future weeks. Past weeks will not be changed. Continue?')
+      : await new Promise<boolean>(resolve => {
+          Alert.alert(
+            'Update Current & Future Weeks',
+            'This will apply the template to the current week and any future weeks. Past weeks will not be changed. Continue?',
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Update', onPress: () => resolve(true) },
+            ]
+          );
+        });
 
-    Alert.alert(
-      'Update All Weeks',
-      `This will update all ${weeks.length} existing week(s) with the current template. This action cannot be undone. Continue?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Update',
-          onPress: async () => {
-            await updateAllWeeksFromTemplate();
-            Alert.alert('Success', `Successfully updated ${weeks.length} week(s) from template!`);
-          },
-        },
-      ]
-    );
+    if (shouldUpdate) {
+      const updatedCount = await updateAllWeeksFromTemplate();
+
+      if (typeof window !== 'undefined' && window.alert) {
+        window.alert(`Successfully updated ${updatedCount} week(s) from template!`);
+      } else {
+        Alert.alert('Success', `Successfully updated ${updatedCount} week(s) from template!`);
+      }
+    }
   };
 
   const handleOpenAddTaskModal = (dayOfWeek: DayOfWeek, timeOfDay: TimeOfDay) => {
@@ -186,6 +194,19 @@ export function WeeklyView() {
 
   const handleReorderTasks = async (reorderedTasks: Task[], dayOfWeek: DayOfWeek, timeOfDay: TimeOfDay) => {
     await reorderTasks(reorderedTasks, dayOfWeek, timeOfDay, selectedWeek);
+  };
+
+  const handleTaskLongPress = (task: Task) => {
+    setSelectedTask(task);
+    setActionModalVisible(true);
+  };
+
+  const handleEditTask = async (taskId: string, newTitle: string) => {
+    await updateTaskDetails(taskId, { title: newTitle });
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    await deleteTask(taskId);
   };
 
   const availableWeeks = getAvailableWeeks();
@@ -229,6 +250,7 @@ export function WeeklyView() {
             getChildTasks={getChildTasksForWeek}
             onAddTask={handleOpenAddTaskModal}
             onReorderTasks={handleReorderTasks}
+            onTaskLongPress={handleTaskLongPress}
           />
         ))}
       </ScrollView>
@@ -242,6 +264,17 @@ export function WeeklyView() {
           onAdd={handleAddTask}
         />
       )}
+
+      <TaskActionModal
+        visible={actionModalVisible}
+        task={selectedTask}
+        onClose={() => {
+          setActionModalVisible(false);
+          setSelectedTask(null);
+        }}
+        onSave={handleEditTask}
+        onDelete={handleDeleteTask}
+      />
     </View>
   );
 }

@@ -1,20 +1,42 @@
 {
+  "cli": {
+    "version": ">= 16.0.0"
+  },
   "build": {
+    "base": {
+      "node": "20.18.0",
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "NO_FLIPPER": "1",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "840823436810-ma1io2md9l1fk2e1b7g1m6rhsca5s2ri.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "840823436810-oob92650iaue0n53c046i5g2isfobjf3.apps.googleusercontent.com",
+        "EXPO_PUBLIC_REDIRECT_URI": "http://localhost:8081"
+      },
+      "ios": {
+        "cocoapods": "1.16.2"
+      }
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": true
       }
     },
     "preview": {
+      "extends": "base",
       "distribution": "internal",
       "ios": {
         "simulator": false
       }
     },
     "production": {
+      "extends": "base",
       "distribution": "store"
     }
+  },
+  "submit": {
+    "production": {}
   }
 }

@@ -1,21 +1,39 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GoogleCalendarAPI, getAuthorizationUrl, exchangeCodeForTokens } from '@task-app/shared';
+import { Alert, Platform } from 'react-native';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import { GoogleCalendarAPI, exchangeCodeForTokens } from '@task-app/shared';
 import type { CalendarEvent } from '@task-app/shared';
 import { useSettings } from './useSettings';
 import { AsyncStorageAdapter } from '../storage/AsyncStorageAdapter';
-import { Alert, Linking, Platform } from 'react-native';
+
+// Complete auth session for web browser redirect
+WebBrowser.maybeCompleteAuthSession();
 
 const storage = new AsyncStorageAdapter();
 
-// Note: For production mobile OAuth, you would need to:
-// 1. Set up a custom URL scheme (e.g., taskapp://)
-// 2. Use expo-auth-session or similar library
-// 3. Configure Google OAuth credentials with the custom scheme as redirect URI
-// For now, this uses web-compatible OAuth for testing in web preview
-
-const CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
+const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';
+const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_SECRET || '';
-const REDIRECT_URI = process.env.EXPO_PUBLIC_REDIRECT_URI || 'http://localhost:8081/oauth/callback';
+const WEB_REDIRECT_URI = process.env.EXPO_PUBLIC_REDIRECT_URI || 'http://localhost:8081';
+
+// Use iOS client ID on native, web client ID on web
+const CLIENT_ID = Platform.OS === 'web' ? WEB_CLIENT_ID : (IOS_CLIENT_ID || WEB_CLIENT_ID);
+
+// For iOS, Google requires reversed client ID as the redirect URI scheme
+const getIOSRedirectUri = () => {
+  if (!IOS_CLIENT_ID) return '';
+  // Reverse the client ID: xxx.apps.googleusercontent.com -> com.googleusercontent.apps.xxx
+  const reversedClientId = IOS_CLIENT_ID.split('.').reverse().join('.');
+  return `${reversedClientId}:/oauthredirect`;
+};
+
+// Google OAuth discovery document
+const discovery = {
+  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+  tokenEndpoint: 'https://oauth2.googleapis.com/token',
+  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+};
 
 export function useGoogleCalendar() {
   const { settings, updateSettings } = useSettings();
@@ -25,6 +43,38 @@ export function useGoogleCalendar() {
 
   const isConnected = settings.googleCalendarConnected;
   const hasTokens = !!settings.googleCalendarTokens;
+
+  // For iOS, use the reversed client ID format that Google requires
+  const redirectUri = Platform.OS === 'ios'
+    ? getIOSRedirectUri()
+    : AuthSession.makeRedirectUri({
+        scheme: 'taskapp',
+        path: 'oauth',
+      });
+
+  // Create the auth request
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: CLIENT_ID,
+      scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+      redirectUri: Platform.OS === 'web' ? WEB_REDIRECT_URI : redirectUri,
+      responseType: AuthSession.ResponseType.Code,
+      usePKCE: true,
+    },
+    discovery
+  );
+
+  // Handle the auth response
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { code } = response.params;
+      if (code) {
+        handleOAuthCallback(code, request?.codeVerifier);
+      }
+    } else if (response?.type === 'error') {
+      Alert.alert('Authentication Error', response.error?.message || 'Failed to authenticate');
+    }
+  }, [response]);
 
   // Load calendar events from storage on mount
   useEffect(() => {
@@ -61,43 +111,30 @@ export function useGoogleCalendar() {
       return;
     }
 
-    const authUrl = getAuthorizationUrl(CLIENT_ID, REDIRECT_URI);
-
     try {
-      // On web, we can use window.location
-      // On native, this would open in browser (not ideal - should use expo-auth-session)
-      if (Platform.OS === 'web') {
-        window.location.href = authUrl;
-      } else {
-        const canOpen = await Linking.canOpenURL(authUrl);
-        if (canOpen) {
-          await Linking.openURL(authUrl);
-          Alert.alert(
-            'OAuth Flow',
-            'For native mobile OAuth, you should implement expo-auth-session for a better user experience.'
-          );
-        }
-      }
+      await promptAsync();
     } catch (err) {
-      console.error('Error opening OAuth URL:', err);
-      Alert.alert('Error', 'Failed to open Google Calendar authorization');
+      console.error('Error starting OAuth flow:', err);
+      Alert.alert('Error', 'Failed to start Google Calendar authorization');
     }
-  }, []);
+  }, [promptAsync]);
 
   // Fetch calendar events from Google
-  const fetchCalendarEvents = useCallback(async (accessToken?: string) => {
+  // silent: if true, don't show errors (used for auto-fetch on startup)
+  const fetchCalendarEvents = useCallback(async (accessToken?: string, silent = false) => {
     if (!hasTokens && !accessToken) {
       console.warn('No access token available');
       return;
     }
 
     setLoading(true);
-    setError(null);
+    if (!silent) setError(null);
 
     try {
       const token = accessToken || settings.googleCalendarTokens?.accessToken;
       if (!token) {
-        throw new Error('No access token available');
+        console.warn('No access token available');
+        return;
       }
 
       const api = new GoogleCalendarAPI({ accessToken: token });
@@ -115,42 +152,78 @@ export function useGoogleCalendar() {
       await saveCalendarEvents(events);
 
     } catch (err: any) {
-      console.error('Error fetching calendar events:', err);
-      setError('Failed to fetch calendar events');
+      console.warn('Error fetching calendar events:', err?.message || err);
+      if (!silent) {
+        setError('Failed to fetch calendar events');
+      }
+      // Don't re-throw - just log the error
     } finally {
       setLoading(false);
     }
   }, [hasTokens, settings.googleCalendarTokens, saveCalendarEvents]);
 
   // Handle OAuth callback
-  const handleOAuthCallback = useCallback(async (code: string) => {
+  const handleOAuthCallback = useCallback(async (code: string, codeVerifier?: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      const tokens = await exchangeCodeForTokens(code, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+      // For native with PKCE, we need to exchange code differently
+      if (Platform.OS !== 'web' && codeVerifier) {
+        // Exchange code for tokens using PKCE
+        const tokenResponse = await AuthSession.exchangeCodeAsync(
+          {
+            clientId: CLIENT_ID,
+            code,
+            redirectUri,
+            extraParams: {
+              code_verifier: codeVerifier,
+            },
+          },
+          discovery
+        );
 
-      await updateSettings({
-        googleCalendarConnected: true,
-        googleCalendarTokens: {
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-          expiryDate: tokens.expiryDate,
-        },
-      });
+        await updateSettings({
+          googleCalendarConnected: true,
+          googleCalendarTokens: {
+            accessToken: tokenResponse.accessToken,
+            refreshToken: tokenResponse.refreshToken || '',
+            expiryDate: tokenResponse.expiresIn
+              ? Date.now() + tokenResponse.expiresIn * 1000
+              : Date.now() + 3600 * 1000,
+          },
+        });
 
-      // Fetch initial events
-      await fetchCalendarEvents(tokens.accessToken);
+        // Fetch initial events
+        await fetchCalendarEvents(tokenResponse.accessToken);
+      } else {
+        // Web flow - use the existing exchange function
+        const tokens = await exchangeCodeForTokens(code, CLIENT_ID, CLIENT_SECRET, WEB_REDIRECT_URI);
 
+        await updateSettings({
+          googleCalendarConnected: true,
+          googleCalendarTokens: {
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            expiryDate: tokens.expiryDate,
+          },
+        });
+
+        // Fetch initial events
+        await fetchCalendarEvents(tokens.accessToken);
+      }
+
+      Alert.alert('Success', 'Google Calendar connected successfully!');
       return true;
     } catch (err) {
       console.error('OAuth callback error:', err);
       setError('Failed to connect Google Calendar. Please try again.');
+      Alert.alert('Error', 'Failed to connect Google Calendar. Please try again.');
       return false;
     } finally {
       setLoading(false);
     }
-  }, [updateSettings, fetchCalendarEvents]);
+  }, [updateSettings, fetchCalendarEvents, redirectUri]);
 
   // Disconnect Google Calendar
   const disconnectGoogleCalendar = useCallback(async () => {

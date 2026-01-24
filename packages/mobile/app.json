@@ -3,6 +3,7 @@
     "name": "Task App",
     "slug": "task-app",
     "version": "1.0.0",
+    "scheme": "taskapp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,8 +16,16 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mariepimienta.taskapp",
+      "buildNumber": "3",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.840823436810-oob92650iaue0n53c046i5g2isfobjf3"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -34,6 +43,9 @@
       "eas": {
         "projectId": "84073074-e907-4518-ac4f-5390115699cf"
       }
-    }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

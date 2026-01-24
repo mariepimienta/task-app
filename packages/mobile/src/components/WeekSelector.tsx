@@ -5,8 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
 import { getWeekStartFromDate, getCurrentWeekStart, getWeekRangeFromStart, getPreviousWeekStart, getNextWeekStart } from '@task-app/shared';
 
@@ -24,6 +24,10 @@ export function WeekSelector({
   onCreateWeek,
 }: WeekSelectorProps) {
   const [isVisible, setIsVisible] = useState(false);
+
+  const todayWeekStart = getCurrentWeekStart();
+  const isCurrentWeek = currentWeek === todayWeekStart;
+  const isTemplateView = currentWeek === 'template';
 
   const currentLabel = currentWeek === 'template'
     ? 'Template'
@@ -80,16 +84,24 @@ export function WeekSelector({
     }
   }
 
+  const handleGoToToday = () => {
+    onSelectWeek(todayWeekStart);
+  };
+
+  const handleGoToTemplate = () => {
+    onSelectWeek('template');
+  };
+
   return (
     <>
       <View style={styles.container}>
         <TouchableOpacity
           style={styles.navButton}
           onPress={handlePrevWeek}
-          disabled={currentWeek === 'template'}
+          disabled={isTemplateView}
           activeOpacity={0.6}
         >
-          <Text style={[styles.navButtonText, currentWeek === 'template' && styles.navButtonDisabled]}>←</Text>
+          <Text style={[styles.navButtonText, isTemplateView && styles.navButtonDisabled]}>←</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -105,10 +117,33 @@ export function WeekSelector({
         <TouchableOpacity
           style={styles.navButton}
           onPress={handleNextWeek}
-          disabled={currentWeek === 'template'}
+          disabled={isTemplateView}
           activeOpacity={0.6}
         >
-          <Text style={[styles.navButtonText, currentWeek === 'template' && styles.navButtonDisabled]}>→</Text>
+          <Text style={[styles.navButtonText, isTemplateView && styles.navButtonDisabled]}>→</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Quick Access Buttons */}
+      <View style={styles.quickAccessRow}>
+        <TouchableOpacity
+          style={[styles.quickAccessButton, isCurrentWeek && styles.quickAccessButtonActive]}
+          onPress={handleGoToToday}
+          activeOpacity={0.6}
+        >
+          <Text style={[styles.quickAccessButtonText, isCurrentWeek && styles.quickAccessButtonTextActive]}>
+            Today
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.quickAccessButton, isTemplateView && styles.quickAccessButtonActive]}
+          onPress={handleGoToTemplate}
+          activeOpacity={0.6}
+        >
+          <Text style={[styles.quickAccessButtonText, isTemplateView && styles.quickAccessButtonTextActive]}>
+            Template
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -185,6 +220,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  quickAccessRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  quickAccessButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  quickAccessButtonActive: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  quickAccessButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#737373',
+  },
+  quickAccessButtonTextActive: {
+    color: '#ffffff',
   },
   navButton: {
     width: 44,
