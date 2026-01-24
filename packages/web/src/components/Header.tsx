@@ -10,6 +10,9 @@ interface HeaderProps {
   isCalendarConnected?: boolean;
   onConnectCalendar?: () => void;
   onDisconnectCalendar?: () => void;
+  isTemplateView?: boolean;
+  onSaveTemplateToAllWeeks?: () => void;
+  onDeleteWeek?: () => void;
 }
 
 export function Header({
@@ -22,6 +25,9 @@ export function Header({
   isCalendarConnected = false,
   onConnectCalendar,
   onDisconnectCalendar,
+  isTemplateView = false,
+  onSaveTemplateToAllWeeks,
+  onDeleteWeek,
 }: HeaderProps) {
   return (
     <div className="header">
@@ -54,6 +60,26 @@ export function Header({
             title="Connect Google Calendar"
           >
             📅 Connect Google Calendar
+          </button>
+        )}
+
+        {isTemplateView && onSaveTemplateToAllWeeks && (
+          <button
+            className="save-template-button"
+            onClick={onSaveTemplateToAllWeeks}
+            title="Save template to all existing weeks"
+          >
+            💾 Save for All Future Weeks
+          </button>
+        )}
+
+        {!isTemplateView && onDeleteWeek && (
+          <button
+            className="delete-week-button"
+            onClick={onDeleteWeek}
+            title="Delete this week"
+          >
+            🗑️ Delete Week
           </button>
         )}
       </div>

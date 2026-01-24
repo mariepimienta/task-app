@@ -12,6 +12,10 @@ import {
   getRootTasks,
   getChildTasks,
   generateSampleTasks,
+  getTemplateTasks,
+  createWeekFromTemplate,
+  getCurrentWeekStart,
+  getNextWeekStart,
 } from '@task-app/shared';
 import { AsyncStorageAdapter } from '../storage/AsyncStorageAdapter';
 
@@ -50,11 +54,12 @@ export function useTasks() {
       title: string,
       dayOfWeek: DayOfWeek,
       timeOfDay: TimeOfDay,
-      options?: { parentTaskId?: string; recurring?: boolean }
+      options?: { parentTaskId?: string; recurring?: boolean; weekStartDate?: string }
     ) => {
       const newTask = createTask(title, dayOfWeek, timeOfDay, {
         parentTaskId: options?.parentTaskId,
         recurring: options?.recurring,
+        weekStartDate: options?.weekStartDate,
         order: tasks.length,
       });
       await saveTasks([...tasks, newTask]);
@@ -112,6 +117,94 @@ export function useTasks() {
     await saveTasks(sampleTasks);
   }, []);
 
+  const getAvailableWeeks = useCallback(() => {
+    const weeks = new Set<string>();
+    tasks.forEach(task => {
+      if (task.weekStartDate && task.weekStartDate !== 'template') {
+        weeks.add(task.weekStartDate);
+      }
+    });
+    return Array.from(weeks).sort();
+  }, [tasks]);
+
+  const createNewWeek = useCallback(
+    async (weekStartDate: string) => {
+      const templateTasks = getTemplateTasks(tasks);
+      const newWeekTasks = createWeekFromTemplate(templateTasks, weekStartDate);
+      await saveTasks([...tasks, ...newWeekTasks]);
+      return weekStartDate;
+    },
+    [tasks]
+  );
+
+  const createNextWeek = useCallback(async () => {
+    const weeks = getAvailableWeeks();
+    const latestWeek = weeks.length > 0 ? weeks[weeks.length - 1] : getCurrentWeekStart();
+    const nextWeek = getNextWeekStart(latestWeek);
+    return await createNewWeek(nextWeek);
+  }, [getAvailableWeeks, createNewWeek]);
+
+  const ensureCurrentWeekExists = useCallback(async () => {
+    const currentWeek = getCurrentWeekStart();
+    const weeks = getAvailableWeeks();
+    if (!weeks.includes(currentWeek)) {
+      await createNewWeek(currentWeek);
+    }
+  }, [getAvailableWeeks, createNewWeek]);
+
+  const deleteWeek = useCallback(
+    async (weekStartDate: string) => {
+      if (weekStartDate === 'template') {
+        return;
+      }
+      const updatedTasks = tasks.filter(task => task.weekStartDate !== weekStartDate);
+      await saveTasks(updatedTasks);
+    },
+    [tasks]
+  );
+
+  const updateAllWeeksFromTemplate = useCallback(
+    async () => {
+      const templateTasks = getTemplateTasks(tasks);
+      const weeks = getAvailableWeeks();
+
+      if (weeks.length === 0) return;
+
+      const updatedTasks: Task[] = [...templateTasks];
+
+      weeks.forEach(weekStartDate => {
+        const newWeekTasks = createWeekFromTemplate(templateTasks, weekStartDate);
+        updatedTasks.push(...newWeekTasks);
+      });
+
+      await saveTasks(updatedTasks);
+    },
+    [tasks, getAvailableWeeks]
+  );
+
+  const reorderTasks = useCallback(
+    async (reorderedTasks: Task[], dayOfWeek: DayOfWeek, timeOfDay: TimeOfDay, weekStartDate: string | 'template') => {
+      // Update the order property of the reordered tasks
+      const tasksWithNewOrder = reorderedTasks.map((task, index) => ({
+        ...task,
+        order: index,
+      }));
+
+      // Get all other tasks that shouldn't be affected
+      const otherTasks = tasks.filter(
+        task =>
+          !(task.dayOfWeek === dayOfWeek &&
+            task.timeOfDay === timeOfDay &&
+            task.weekStartDate === weekStartDate &&
+            !task.parentTaskId)
+      );
+
+      // Combine and save
+      await saveTasks([...otherTasks, ...tasksWithNewOrder]);
+    },
+    [tasks]
+  );
+
   return {
     tasks,
     loading,
@@ -122,5 +215,12 @@ export function useTasks() {
     getTasksForDayAndTime,
     getChildTasksForParent,
     loadSampleData,
+    getAvailableWeeks,
+    createNewWeek,
+    createNextWeek,
+    ensureCurrentWeekExists,
+    deleteWeek,
+    updateAllWeeksFromTemplate,
+    reorderTasks,
   };
 }

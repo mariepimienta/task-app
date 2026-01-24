@@ -71,3 +71,43 @@
 .calendar-connect-button.connected:hover {
   background-color: #30B350;
 }
+
+.save-template-button {
+  padding: 6px 12px;
+  background-color: #34C759;
+  color: white;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 600;
+}
+
+.save-template-button:hover {
+  background-color: #30B350;
+}
+
+.save-template-button:active {
+  background-color: #28A047;
+}
+
+.delete-week-button {
+  padding: 6px 12px;
+  background-color: #FF3B30;
+  color: white;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.delete-week-button:hover {
+  background-color: #E6342A;
+}
+
+.delete-week-button:active {
+  background-color: #CC2E24;
+}

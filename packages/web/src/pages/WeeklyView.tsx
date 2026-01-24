@@ -7,7 +7,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { Header } from '../components/Header';
 import { DayColumn } from '../components/DayColumn';
-import { WeekSelector } from '../components/WeekSelector';
+import { CalendarSidebar } from '../components/CalendarSidebar';
 import './WeeklyView.css';
 
 const DAYS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -22,9 +22,10 @@ export function WeeklyView() {
     moveTask,
     updateTaskTitle,
     getAvailableWeeks,
-    createNextWeek,
+    createNewWeek,
     ensureCurrentWeekExists,
     deleteWeek,
+    updateAllWeeksFromTemplate,
   } = useTasks();
   const { settings, loading: settingsLoading, toggleShowTasks, toggleShowCalendarEvents } = useSettings();
   const {
@@ -104,9 +105,9 @@ export function WeeklyView() {
     }
   };
 
-  const handleCreateNextWeek = async () => {
-    const newWeek = await createNextWeek();
-    setSelectedWeek(newWeek);
+  const handleCreateWeekFromDate = async (weekStartDate: string) => {
+    await createNewWeek(weekStartDate);
+    setSelectedWeek(weekStartDate);
   };
 
   const handleDeleteWeek = async (weekStartDate: string) => {
@@ -135,6 +136,28 @@ export function WeeklyView() {
     }
   };
 
+  const handleSaveTemplateToAllWeeks = async () => {
+    const weeks = getAvailableWeeks();
+    if (weeks.length === 0) {
+      alert('No weeks exist yet. Create a week first to use this feature.');
+      return;
+    }
+
+    if (!confirm(`This will update all ${weeks.length} existing week(s) with the current template. This action cannot be undone. Continue?`)) {
+      return;
+    }
+
+    await updateAllWeeksFromTemplate();
+    alert(`Successfully updated ${weeks.length} week(s) from template!`);
+  };
+
+  const handleDeleteCurrentWeek = async () => {
+    if (selectedWeek === 'template') {
+      return;
+    }
+    await handleDeleteWeek(selectedWeek);
+  };
+
   const availableWeeks = getAvailableWeeks();
 
   // Get current view title
@@ -144,12 +167,11 @@ export function WeeklyView() {
 
   return (
     <div className="weekly-view-container">
-      <WeekSelector
+      <CalendarSidebar
         availableWeeks={availableWeeks}
         currentWeek={selectedWeek}
         onSelectWeek={setSelectedWeek}
-        onCreateNextWeek={handleCreateNextWeek}
-        onDeleteWeek={handleDeleteWeek}
+        onCreateWeekFromDate={handleCreateWeekFromDate}
       />
 
       <div className="weekly-view">
@@ -163,6 +185,9 @@ export function WeeklyView() {
           isCalendarConnected={isCalendarConnected}
           onConnectCalendar={connectGoogleCalendar}
           onDisconnectCalendar={disconnectGoogleCalendar}
+          isTemplateView={selectedWeek === 'template'}
+          onSaveTemplateToAllWeeks={handleSaveTemplateToAllWeeks}
+          onDeleteWeek={handleDeleteCurrentWeek}
         />
 
         <div className="days-container">
