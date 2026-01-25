@@ -20,99 +20,57 @@ interface DayColumnProps {
   onTaskLongPress?: (task: Task) => void;
 }
 
-export function DayColumn({ dayOfWeek, tasks, calendarEvents, onToggleTask, getChildTasks, onAddTask, onReorderTasks, onTaskLongPress }: DayColumnProps) {
+export function DayColumn({ dayOfWeek, tasks, calendarEvents, onToggleTask, getChildTasks, onAddTask, onTaskLongPress }: DayColumnProps) {
   const dayLabel = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
+
+  // Combine all tasks and events
+  const allTasks = [...tasks.am, ...tasks.pm];
+  const allEvents = [...(calendarEvents?.am || []), ...(calendarEvents?.pm || [])];
+  const hasContent = allTasks.length > 0 || allEvents.length > 0;
 
   return (
     <View style={styles.container}>
       <View style={styles.dayHeader}>
         <Text style={styles.dayLabel}>{dayLabel}</Text>
+        {onAddTask && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => onAddTask(dayOfWeek, 'am')}
+            activeOpacity={0.6}
+          >
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.content}>
-        <View style={styles.section}>
-          <View style={styles.timeLabelRow}>
-            <Text style={styles.timeLabel}>AM</Text>
-            {onAddTask && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => onAddTask(dayOfWeek, 'am')}
-                activeOpacity={0.6}
-              >
-                <Text style={styles.addButtonText}>+</Text>
-              </TouchableOpacity>
-            )}
+        {/* Calendar Events */}
+        {allEvents.map(event => (
+          <View key={event.id} style={styles.calendarEventItem}>
+            <Text style={styles.calendarEventTime}>
+              {formatTime(new Date(event.startTime))}
+            </Text>
+            <Text style={styles.calendarEventTitle}>{event.title}</Text>
           </View>
-          {/* Calendar Events */}
-          {calendarEvents?.am.map(event => (
-            <View key={event.id} style={styles.calendarEventItem}>
-              <Text style={styles.calendarEventTime}>
-                {formatTime(new Date(event.startTime))}
-              </Text>
-              <Text style={styles.calendarEventTitle}>{event.title}</Text>
-            </View>
-          ))}
-          {tasks.am.length > 0 ? (
-            tasks.am.map(task => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={onToggleTask}
-                onPress={() => onTaskLongPress?.(task)}
-                childTasks={getChildTasks(task.id)}
-              />
-            ))
-          ) : (
-            !calendarEvents?.am.length && (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No tasks</Text>
-              </View>
-            )
-          )}
-        </View>
+        ))}
 
-        <View style={styles.divider} />
+        {/* Tasks */}
+        {allTasks.map(task => (
+          <TaskItem
+            key={task.id}
+            task={task}
+            onToggle={onToggleTask}
+            onPress={() => onTaskLongPress?.(task)}
+            childTasks={getChildTasks(task.id)}
+          />
+        ))}
 
-        <View style={styles.section}>
-          <View style={styles.timeLabelRow}>
-            <Text style={styles.timeLabel}>PM</Text>
-            {onAddTask && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => onAddTask(dayOfWeek, 'pm')}
-                activeOpacity={0.6}
-              >
-                <Text style={styles.addButtonText}>+</Text>
-              </TouchableOpacity>
-            )}
+        {/* Empty state */}
+        {!hasContent && (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No tasks</Text>
           </View>
-          {/* Calendar Events */}
-          {calendarEvents?.pm.map(event => (
-            <View key={event.id} style={styles.calendarEventItem}>
-              <Text style={styles.calendarEventTime}>
-                {formatTime(new Date(event.startTime))}
-              </Text>
-              <Text style={styles.calendarEventTitle}>{event.title}</Text>
-            </View>
-          ))}
-          {tasks.pm.length > 0 ? (
-            tasks.pm.map(task => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={onToggleTask}
-                onPress={() => onTaskLongPress?.(task)}
-                childTasks={getChildTasks(task.id)}
-              />
-            ))
-          ) : (
-            !calendarEvents?.pm.length && (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No tasks</Text>
-              </View>
-            )
-          )}
-        </View>
+        )}
       </View>
     </View>
   );
@@ -128,6 +86,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   dayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
@@ -140,27 +101,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  content: {
-    padding: 20,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  timeLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  timeLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#737373',
-    letterSpacing: 1,
-  },
   addButton: {
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -169,30 +112,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   addButtonText: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#000000',
     fontWeight: '300',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#f5f5f5',
-    marginBottom: 20,
+  content: {
+    padding: 16,
   },
   emptyContainer: {
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   emptyText: {
     fontSize: 13,
     color: '#a3a3a3',
     fontStyle: 'italic',
   },
-  listContainer: {
-    flex: 1,
-  },
   calendarEventItem: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    marginBottom: 6,
+    marginBottom: 8,
     backgroundColor: '#f0f9ff',
     borderLeftWidth: 3,
     borderLeftColor: '#0ea5e9',

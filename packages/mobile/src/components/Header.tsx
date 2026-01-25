@@ -2,82 +2,28 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface HeaderProps {
-  wakeUpTime: string;
-  showTasks: boolean;
-  showCalendarEvents: boolean;
-  onToggleShowTasks: () => void;
-  onToggleShowCalendarEvents: () => void;
-  weekTitle?: string;
   isTemplateView?: boolean;
   onSaveTemplateToAllWeeks?: () => void;
-  isCalendarConnected?: boolean;
-  onConnectCalendar?: () => void;
-  onDisconnectCalendar?: () => void;
+  onOpenSettings: () => void;
 }
 
 export function Header({
-  wakeUpTime,
-  showTasks,
-  showCalendarEvents,
-  onToggleShowTasks,
-  onToggleShowCalendarEvents,
-  weekTitle,
   isTemplateView = false,
   onSaveTemplateToAllWeeks,
-  isCalendarConnected = false,
-  onConnectCalendar,
-  onDisconnectCalendar,
+  onOpenSettings,
 }: HeaderProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.titleRow}>
-        <Text style={styles.weekRange}>{weekTitle || 'Weekly View'}</Text>
-        <Text style={styles.wakeUpTime}>Wake up: {wakeUpTime}</Text>
-      </View>
-
-      <View style={styles.controlsRow}>
+      <View style={styles.topRow}>
+        <Text style={styles.appTitle}>Tasks</Text>
         <TouchableOpacity
-          style={[styles.toggleButton, showTasks && styles.toggleButtonActive]}
-          onPress={onToggleShowTasks}
+          style={styles.settingsButton}
+          onPress={onOpenSettings}
           activeOpacity={0.6}
         >
-          <Text style={[styles.toggleButtonText, showTasks && styles.toggleButtonTextActive]}>
-            Tasks
-          </Text>
+          <Text style={styles.settingsIcon}>⚙</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.toggleButton, showCalendarEvents && styles.toggleButtonActive]}
-          onPress={onToggleShowCalendarEvents}
-          activeOpacity={0.6}
-        >
-          <Text style={[styles.toggleButtonText, showCalendarEvents && styles.toggleButtonTextActive]}>
-            Calendar
-          </Text>
-        </TouchableOpacity>
-
-        {isCalendarConnected ? (
-          <TouchableOpacity
-            style={[styles.toggleButton, styles.toggleButtonActive]}
-            onPress={onDisconnectCalendar}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.toggleButtonText, styles.toggleButtonTextActive]}>
-              Connected
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.toggleButton}
-            onPress={onConnectCalendar}
-            activeOpacity={0.6}
-          >
-            <Text style={styles.toggleButtonText}>
-              Connect
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {isTemplateView && onSaveTemplateToAllWeeks && (
@@ -97,51 +43,31 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffffff',
     paddingHorizontal: 24,
-    paddingTop: 64,
-    paddingBottom: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e5e5',
   },
-  titleRow: {
-    marginBottom: 20,
-  },
-  weekRange: {
-    fontSize: 32,
-    fontWeight: '300',
-    color: '#000000',
-    marginBottom: 6,
-    letterSpacing: -1,
-  },
-  wakeUpTime: {
-    fontSize: 14,
-    color: '#737373',
-    fontWeight: '400',
-    letterSpacing: 0,
-  },
-  controlsRow: {
+  topRow: {
     flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  toggleButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-    borderRadius: 6,
+  appTitle: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#000000',
+    letterSpacing: -0.5,
   },
-  toggleButtonActive: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
+  settingsButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  toggleButtonText: {
-    fontSize: 13,
+  settingsIcon: {
+    fontSize: 24,
     color: '#737373',
-    fontWeight: '500',
-    letterSpacing: 0.2,
-  },
-  toggleButtonTextActive: {
-    color: '#ffffff',
   },
   actionButton: {
     marginTop: 16,

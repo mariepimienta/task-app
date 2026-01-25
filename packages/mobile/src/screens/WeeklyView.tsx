@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { parseISO } from 'date-fns';
-import { DayOfWeek, TimeOfDay, Task, getCurrentWeekStart, getWeekRangeFromStart, getDateForDayOfWeek, getTimeOfDayFromDate } from '@task-app/shared';
+import { DayOfWeek, TimeOfDay, Task, getCurrentWeekStart, getDateForDayOfWeek, getTimeOfDayFromDate } from '@task-app/shared';
 import { useTasks } from '../hooks/useTasks';
 import { useSettings } from '../hooks/useSettings';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
@@ -10,6 +10,7 @@ import { DayColumn } from '../components/DayColumn';
 import { WeekSelector } from '../components/WeekSelector';
 import { AddTaskModal } from '../components/AddTaskModal';
 import { TaskActionModal } from '../components/TaskActionModal';
+import { SettingsModal } from '../components/SettingsModal';
 
 const DAYS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -44,6 +45,7 @@ export function WeeklyView() {
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<TimeOfDay | null>(null);
   const [actionModalVisible, setActionModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
 
   useEffect(() => {
     if (!tasksLoading) {
@@ -210,24 +212,13 @@ export function WeeklyView() {
   };
 
   const availableWeeks = getAvailableWeeks();
-  const viewTitle = selectedWeek === 'template'
-    ? 'Template Week'
-    : getWeekRangeFromStart(selectedWeek).label;
 
   return (
     <View style={styles.container}>
       <Header
-        wakeUpTime={settings.wakeUpTime}
-        showTasks={settings.showTasks}
-        showCalendarEvents={settings.showCalendarEvents}
-        onToggleShowTasks={toggleShowTasks}
-        onToggleShowCalendarEvents={toggleShowCalendarEvents}
-        weekTitle={viewTitle}
         isTemplateView={selectedWeek === 'template'}
         onSaveTemplateToAllWeeks={handleSaveTemplateToAllWeeks}
-        isCalendarConnected={isCalendarConnected}
-        onConnectCalendar={connectGoogleCalendar}
-        onDisconnectCalendar={disconnectGoogleCalendar}
+        onOpenSettings={() => setSettingsModalVisible(true)}
       />
 
       <View style={styles.weekSelectorContainer}>
@@ -274,6 +265,18 @@ export function WeeklyView() {
         }}
         onSave={handleEditTask}
         onDelete={handleDeleteTask}
+      />
+
+      <SettingsModal
+        visible={settingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
+        showTasks={settings.showTasks}
+        showCalendarEvents={settings.showCalendarEvents}
+        onToggleShowTasks={toggleShowTasks}
+        onToggleShowCalendarEvents={toggleShowCalendarEvents}
+        isCalendarConnected={isCalendarConnected}
+        onConnectCalendar={connectGoogleCalendar}
+        onDisconnectCalendar={disconnectGoogleCalendar}
       />
     </View>
   );
