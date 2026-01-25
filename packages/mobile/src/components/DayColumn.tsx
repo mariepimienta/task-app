@@ -16,11 +16,11 @@ interface DayColumnProps {
   onToggleTask: (taskId: string) => void;
   getChildTasks: (parentId: string) => Task[];
   onAddTask?: (dayOfWeek: DayOfWeek, timeOfDay: TimeOfDay) => void;
-  onReorderTasks?: (tasks: Task[], dayOfWeek: DayOfWeek, timeOfDay: TimeOfDay) => void;
-  onTaskLongPress?: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (taskId: string) => void;
 }
 
-export function DayColumn({ dayOfWeek, tasks, calendarEvents, onToggleTask, getChildTasks, onAddTask, onTaskLongPress }: DayColumnProps) {
+export function DayColumn({ dayOfWeek, tasks, calendarEvents, onToggleTask, getChildTasks, onAddTask, onEditTask, onDeleteTask }: DayColumnProps) {
   const dayLabel = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
 
   // Combine all tasks and events
@@ -60,7 +60,8 @@ export function DayColumn({ dayOfWeek, tasks, calendarEvents, onToggleTask, getC
             key={task.id}
             task={task}
             onToggle={onToggleTask}
-            onPress={() => onTaskLongPress?.(task)}
+            onEdit={onEditTask}
+            onDelete={onDeleteTask}
             childTasks={getChildTasks(task.id)}
           />
         ))}

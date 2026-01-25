@@ -198,17 +198,13 @@ export function WeeklyView() {
     await reorderTasks(reorderedTasks, dayOfWeek, timeOfDay, selectedWeek);
   };
 
-  const handleTaskLongPress = (task: Task) => {
+  const handleOpenEditModal = (task: Task) => {
     setSelectedTask(task);
     setActionModalVisible(true);
   };
 
-  const handleEditTask = async (taskId: string, newTitle: string) => {
+  const handleSaveTask = async (taskId: string, newTitle: string) => {
     await updateTaskDetails(taskId, { title: newTitle });
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    await deleteTask(taskId);
   };
 
   const availableWeeks = getAvailableWeeks();
@@ -240,8 +236,8 @@ export function WeeklyView() {
             onToggleTask={toggleTask}
             getChildTasks={getChildTasksForWeek}
             onAddTask={handleOpenAddTaskModal}
-            onReorderTasks={handleReorderTasks}
-            onTaskLongPress={handleTaskLongPress}
+            onEditTask={handleOpenEditModal}
+            onDeleteTask={deleteTask}
           />
         ))}
       </ScrollView>
@@ -263,8 +259,7 @@ export function WeeklyView() {
           setActionModalVisible(false);
           setSelectedTask(null);
         }}
-        onSave={handleEditTask}
-        onDelete={handleDeleteTask}
+        onSave={handleSaveTask}
       />
 
       <SettingsModal

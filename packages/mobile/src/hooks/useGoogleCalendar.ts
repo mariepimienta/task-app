@@ -139,16 +139,15 @@ export function useGoogleCalendar() {
 
       const api = new GoogleCalendarAPI({ accessToken: token });
 
-      // Fetch events for the current week
+      // Fetch events for a wider range (this month) to catch more events
       const now = new Date();
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay() + 1); // Monday
-      weekStart.setHours(0, 0, 0, 0);
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 7); // Next Monday
+      console.log('Fetching calendar events from', monthStart.toISOString(), 'to', monthEnd.toISOString());
 
-      const events = await api.fetchEvents(weekStart, weekEnd);
+      const events = await api.fetchEvents(monthStart, monthEnd);
+      console.log('Fetched events:', events.length, events.map(e => ({ title: e.title, start: e.startTime })));
       await saveCalendarEvents(events);
 
     } catch (err: any) {

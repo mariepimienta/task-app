@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { Task } from '@task-app/shared';
 
@@ -17,17 +16,14 @@ interface TaskActionModalProps {
   task: Task | null;
   onClose: () => void;
   onSave: (taskId: string, newTitle: string) => void;
-  onDelete: (taskId: string) => void;
 }
 
-export function TaskActionModal({ visible, task, onClose, onSave, onDelete }: TaskActionModalProps) {
-  const [isEditing, setIsEditing] = useState(false);
+export function TaskActionModal({ visible, task, onClose, onSave }: TaskActionModalProps) {
   const [editedTitle, setEditedTitle] = useState('');
 
   useEffect(() => {
     if (visible && task) {
       setEditedTitle(task.title);
-      setIsEditing(false);
     }
   }, [visible, task]);
 
@@ -35,30 +31,6 @@ export function TaskActionModal({ visible, task, onClose, onSave, onDelete }: Ta
     if (task && editedTitle.trim()) {
       onSave(task.id, editedTitle.trim());
       onClose();
-    }
-  };
-
-  const handleDelete = () => {
-    if (!task) return;
-
-    const confirmDelete = () => {
-      onDelete(task.id);
-      onClose();
-    };
-
-    if (typeof window !== 'undefined' && window.confirm) {
-      if (window.confirm('Are you sure you want to delete this task?')) {
-        confirmDelete();
-      }
-    } else {
-      Alert.alert(
-        'Delete Task',
-        'Are you sure you want to delete this task?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: confirmDelete },
-        ]
-      );
     }
   };
 
@@ -82,61 +54,40 @@ export function TaskActionModal({ visible, task, onClose, onSave, onDelete }: Ta
         />
         <View style={styles.modalContent}>
           <View style={styles.header}>
-            <Text style={styles.title}>{isEditing ? 'Edit Task' : 'Task Options'}</Text>
+            <Text style={styles.title}>Edit Task</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          {isEditing ? (
-            <>
-              <TextInput
-                style={styles.input}
-                value={editedTitle}
-                onChangeText={setEditedTitle}
-                autoFocus
-                multiline
-                placeholder="Task description..."
-                placeholderTextColor="#a3a3a3"
-              />
-              <View style={styles.editButtons}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setIsEditing(false)}
-                  activeOpacity={0.6}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.saveButton, !editedTitle.trim() && styles.saveButtonDisabled]}
-                  onPress={handleSave}
-                  disabled={!editedTitle.trim()}
-                  activeOpacity={0.6}
-                >
-                  <Text style={[styles.saveButtonText, !editedTitle.trim() && styles.saveButtonTextDisabled]}>
-                    Save
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => setIsEditing(true)}
-                activeOpacity={0.6}
-              >
-                <Text style={styles.actionButtonText}>Edit Task</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.deleteButton]}
-                onPress={handleDelete}
-                activeOpacity={0.6}
-              >
-                <Text style={styles.deleteButtonText}>Delete Task</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          <TextInput
+            style={styles.input}
+            value={editedTitle}
+            onChangeText={setEditedTitle}
+            autoFocus
+            multiline
+            placeholder="Task description..."
+            placeholderTextColor="#a3a3a3"
+          />
+          <View style={styles.editButtons}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={onClose}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveButton, !editedTitle.trim() && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={!editedTitle.trim()}
+              activeOpacity={0.6}
+            >
+              <Text style={[styles.saveButtonText, !editedTitle.trim() && styles.saveButtonTextDisabled]}>
+                Save
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -231,28 +182,5 @@ const styles = StyleSheet.create({
   },
   saveButtonTextDisabled: {
     color: '#a3a3a3',
-  },
-  actionButtons: {
-    padding: 24,
-    gap: 12,
-  },
-  actionButton: {
-    paddingVertical: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    color: '#000000',
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  deleteButton: {
-    backgroundColor: '#fef2f2',
-  },
-  deleteButtonText: {
-    color: '#dc2626',
-    fontSize: 15,
-    fontWeight: '500',
   },
 });
