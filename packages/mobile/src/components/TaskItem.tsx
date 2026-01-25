@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Task } from '@task-app/shared';
 
@@ -10,73 +10,26 @@ interface TaskItemProps {
   onDelete?: (taskId: string) => void;
   childTasks?: Task[];
   isCalendarEvent?: boolean;
+  disableLongPress?: boolean;
 }
 
-export function TaskItem({ task, onToggle, onEdit, onDelete, childTasks = [], isCalendarEvent = false }: TaskItemProps) {
+export function TaskItem({ task, onToggle, onEdit, onDelete, childTasks = [], isCalendarEvent = false, disableLongPress = false }: TaskItemProps) {
   const swipeableRef = useRef<Swipeable>(null);
 
-  const renderRightActions = (
-    progress: Animated.AnimatedInterpolation<number>,
-    dragX: Animated.AnimatedInterpolation<number>
-  ) => {
-    const scale = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.8, 1],
-      extrapolate: 'clamp',
-    });
-
-    const opacity = progress.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0, 0.5, 1],
-      extrapolate: 'clamp',
-    });
-
+  const renderRightActions = () => {
     return (
-      <Animated.View style={[styles.deleteActionContainer, { opacity }]}>
-        <Animated.View style={{ transform: [{ scale }] }}>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => {
-              swipeableRef.current?.close();
-              onDelete?.(task.id);
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.deleteIcon}>×</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </Animated.View>
-    );
-  };
-
-  const renderChildRightActions = (
-    childTask: Task,
-    progress: Animated.AnimatedInterpolation<number>
-  ) => {
-    const scale = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.8, 1],
-      extrapolate: 'clamp',
-    });
-
-    const opacity = progress.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0, 0.5, 1],
-      extrapolate: 'clamp',
-    });
-
-    return (
-      <Animated.View style={[styles.deleteActionContainer, { opacity }]}>
-        <Animated.View style={{ transform: [{ scale }] }}>
-          <TouchableOpacity
-            style={styles.deleteButtonSmall}
-            onPress={() => onDelete?.(childTask.id)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.deleteIconSmall}>×</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </Animated.View>
+      <TouchableOpacity
+        style={styles.deleteAction}
+        onPress={() => {
+          swipeableRef.current?.close();
+          onDelete?.(task.id);
+        }}
+        activeOpacity={0.8}
+      >
+        <View style={styles.deleteButton}>
+          <Text style={styles.deleteIcon}>×</Text>
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -85,21 +38,21 @@ export function TaskItem({ task, onToggle, onEdit, onDelete, childTasks = [], is
       <Swipeable
         ref={swipeableRef}
         renderRightActions={onDelete ? renderRightActions : undefined}
-        rightThreshold={30}
+        rightThreshold={40}
         overshootRight={false}
-        friction={2}
+        containerStyle={styles.swipeableContainer}
       >
         <TouchableOpacity
           style={styles.taskRow}
           onPress={() => onToggle(task.id)}
-          onLongPress={() => onEdit?.(task)}
+          onLongPress={disableLongPress ? undefined : () => onEdit?.(task)}
           delayLongPress={300}
           activeOpacity={0.7}
         >
           <View style={[styles.checkbox, task.completed && styles.checkboxChecked, isCalendarEvent && styles.checkboxCalendar]}>
             {task.completed && <View style={styles.checkmark} />}
           </View>
-          <Text style={[styles.taskText, task.completed && styles.taskTextCompleted]}>
+          <Text style={[styles.taskText, task.completed && styles.taskTextCompleted]} numberOfLines={2}>
             {task.title}
           </Text>
         </TouchableOpacity>
@@ -107,30 +60,47 @@ export function TaskItem({ task, onToggle, onEdit, onDelete, childTasks = [], is
 
       {childTasks.length > 0 && (
         <View style={styles.childTasks}>
-          {childTasks.map(childTask => (
-            <Swipeable
-              key={childTask.id}
-              renderRightActions={onDelete ? (progress, dragX) => renderChildRightActions(childTask, progress) : undefined}
-              rightThreshold={30}
-              overshootRight={false}
-              friction={2}
-            >
-              <TouchableOpacity
-                style={styles.childTaskRow}
-                onPress={() => onToggle(childTask.id)}
-                onLongPress={() => onEdit?.(childTask)}
-                delayLongPress={300}
-                activeOpacity={0.7}
+          {childTasks.map(childTask => {
+            const childSwipeableRef = React.createRef<Swipeable>();
+            return (
+              <Swipeable
+                key={childTask.id}
+                ref={childSwipeableRef}
+                renderRightActions={onDelete ? () => (
+                  <TouchableOpacity
+                    style={styles.deleteActionSmall}
+                    onPress={() => {
+                      childSwipeableRef.current?.close();
+                      onDelete?.(childTask.id);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.deleteButtonSmall}>
+                      <Text style={styles.deleteIconSmall}>×</Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : undefined}
+                rightThreshold={40}
+                overshootRight={false}
+                containerStyle={styles.swipeableContainer}
               >
-                <View style={[styles.checkbox, styles.checkboxSmall, childTask.completed && styles.checkboxChecked]}>
-                  {childTask.completed && <View style={[styles.checkmark, styles.checkmarkSmall]} />}
-                </View>
-                <Text style={[styles.taskText, styles.childTaskText, childTask.completed && styles.taskTextCompleted]}>
-                  {childTask.title}
-                </Text>
-              </TouchableOpacity>
-            </Swipeable>
-          ))}
+                <TouchableOpacity
+                  style={styles.childTaskRow}
+                  onPress={() => onToggle(childTask.id)}
+                  onLongPress={() => onEdit?.(childTask)}
+                  delayLongPress={300}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.checkbox, styles.checkboxSmall, childTask.completed && styles.checkboxChecked]}>
+                    {childTask.completed && <View style={[styles.checkmark, styles.checkmarkSmall]} />}
+                  </View>
+                  <Text style={[styles.taskText, styles.childTaskText, childTask.completed && styles.taskTextCompleted]} numberOfLines={2}>
+                    {childTask.title}
+                  </Text>
+                </TouchableOpacity>
+              </Swipeable>
+            );
+          })}
         </View>
       )}
     </View>
@@ -141,12 +111,17 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 4,
   },
+  swipeableContainer: {
+    overflow: 'visible',
+  },
   taskRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 4,
+    paddingRight: 12,
     backgroundColor: '#ffffff',
+    minHeight: 44,
   },
   checkbox: {
     width: 20,
@@ -157,6 +132,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   checkboxChecked: {
     backgroundColor: '#000000',
@@ -199,52 +175,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 4,
+    paddingRight: 12,
     backgroundColor: '#ffffff',
+    minHeight: 36,
   },
   childTaskText: {
     fontSize: 14,
   },
-  deleteActionContainer: {
+  deleteAction: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    width: 56,
+    backgroundColor: '#fef2f2',
+    borderLeftWidth: 1,
+    borderLeftColor: '#fecaca',
+  },
+  deleteActionSmall: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 50,
+    backgroundColor: '#fef2f2',
+    borderLeftWidth: 1,
+    borderLeftColor: '#fecaca',
   },
   deleteButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#ff3b30',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ef4444',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#ff3b30',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
   },
   deleteButtonSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#ff3b30',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ef4444',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#ff3b30',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
   },
   deleteIcon: {
     color: '#ffffff',
-    fontSize: 28,
-    fontWeight: '300',
-    marginTop: -2,
+    fontSize: 24,
+    fontWeight: '400',
+    marginTop: -1,
   },
   deleteIconSmall: {
     color: '#ffffff',
-    fontSize: 22,
-    fontWeight: '300',
-    marginTop: -2,
+    fontSize: 20,
+    fontWeight: '400',
+    marginTop: -1,
   },
 });

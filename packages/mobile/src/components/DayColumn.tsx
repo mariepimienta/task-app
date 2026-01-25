@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Task, DayOfWeek, TimeOfDay, CalendarEvent, formatTime } from '@task-app/shared';
-import { TaskItem } from './TaskItem';
+import { DraggableTaskItem } from './DraggableTaskItem';
+import { useDrag } from '../contexts/DragContext';
 
 interface DayColumnProps {
   dayOfWeek: DayOfWeek;
@@ -22,14 +23,33 @@ interface DayColumnProps {
 
 export function DayColumn({ dayOfWeek, tasks, calendarEvents, onToggleTask, getChildTasks, onAddTask, onEditTask, onDeleteTask }: DayColumnProps) {
   const dayLabel = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
+  const { registerDayColumn, isDragging, targetDay } = useDrag();
+  const containerRef = useRef<View>(null);
 
   // Combine all tasks and events
   const allTasks = [...tasks.am, ...tasks.pm];
   const allEvents = [...(calendarEvents?.am || []), ...(calendarEvents?.pm || [])];
   const hasContent = allTasks.length > 0 || allEvents.length > 0;
 
+  const isDropTarget = isDragging && targetDay === dayOfWeek;
+
+  // Register ref when component mounts
+  const handleRef = useCallback((ref: View | null) => {
+    containerRef.current = ref;
+    registerDayColumn(dayOfWeek, ref);
+  }, [dayOfWeek, registerDayColumn]);
+
+  useEffect(() => {
+    return () => {
+      registerDayColumn(dayOfWeek, null);
+    };
+  }, [dayOfWeek, registerDayColumn]);
+
   return (
-    <View style={styles.container}>
+    <View
+      ref={handleRef}
+      style={[styles.container, isDropTarget && styles.dropTarget]}
+    >
       <View style={styles.dayHeader}>
         <Text style={styles.dayLabel}>{dayLabel}</Text>
         {onAddTask && (
@@ -56,7 +76,7 @@ export function DayColumn({ dayOfWeek, tasks, calendarEvents, onToggleTask, getC
 
         {/* Tasks */}
         {allTasks.map(task => (
-          <TaskItem
+          <DraggableTaskItem
             key={task.id}
             task={task}
             onToggle={onToggleTask}
@@ -85,6 +105,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e5e5',
     borderRadius: 6,
+  },
+  dropTarget: {
+    borderColor: '#007AFF',
+    borderWidth: 2,
+    backgroundColor: '#f0f9ff',
   },
   dayHeader: {
     flexDirection: 'row',

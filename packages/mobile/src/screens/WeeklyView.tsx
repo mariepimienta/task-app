@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { parseISO } from 'date-fns';
 import { DayOfWeek, TimeOfDay, Task, getCurrentWeekStart, getDateForDayOfWeek, getTimeOfDayFromDate } from '@task-app/shared';
 import { useTasks } from '../hooks/useTasks';
@@ -11,6 +11,9 @@ import { WeekSelector } from '../components/WeekSelector';
 import { AddTaskModal } from '../components/AddTaskModal';
 import { TaskActionModal } from '../components/TaskActionModal';
 import { SettingsModal } from '../components/SettingsModal';
+import { DragProvider } from '../contexts/DragContext';
+import { DragOverlay } from '../components/DragOverlay';
+import { DragScrollView } from '../components/DragScrollView';
 
 const DAYS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -101,6 +104,11 @@ export function WeeklyView() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCalendarConnected, selectedWeek]);
+
+  // Move task to a different day (for drag and drop)
+  const handleMoveTask = useCallback(async (taskId: string, newDay: DayOfWeek) => {
+    await updateTaskDetails(taskId, { dayOfWeek: newDay });
+  }, [updateTaskDetails]);
 
   if (tasksLoading || settingsLoading) {
     return (
@@ -210,70 +218,74 @@ export function WeeklyView() {
   const availableWeeks = getAvailableWeeks();
 
   return (
-    <View style={styles.container}>
-      <Header
-        isTemplateView={selectedWeek === 'template'}
-        onSaveTemplateToAllWeeks={handleSaveTemplateToAllWeeks}
-        onOpenSettings={() => setSettingsModalVisible(true)}
-      />
+    <DragProvider onMoveTask={handleMoveTask}>
+      <View style={styles.container}>
+        <Header
+          isTemplateView={selectedWeek === 'template'}
+          onSaveTemplateToAllWeeks={handleSaveTemplateToAllWeeks}
+          onOpenSettings={() => setSettingsModalVisible(true)}
+        />
 
-      <View style={styles.weekSelectorContainer}>
-        <WeekSelector
-          availableWeeks={availableWeeks}
-          currentWeek={selectedWeek}
-          onSelectWeek={setSelectedWeek}
-          onCreateWeek={handleCreateNextWeek}
+        <View style={styles.weekSelectorContainer}>
+          <WeekSelector
+            availableWeeks={availableWeeks}
+            currentWeek={selectedWeek}
+            onSelectWeek={setSelectedWeek}
+            onCreateWeek={handleCreateNextWeek}
+          />
+        </View>
+
+        <DragScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {DAYS.map(day => (
+            <DayColumn
+              key={day}
+              dayOfWeek={day}
+              tasks={getDayTasks(day)}
+              calendarEvents={getDayCalendarEvents(day)}
+              onToggleTask={toggleTask}
+              getChildTasks={getChildTasksForWeek}
+              onAddTask={handleOpenAddTaskModal}
+              onEditTask={handleOpenEditModal}
+              onDeleteTask={deleteTask}
+            />
+          ))}
+        </DragScrollView>
+
+        <DragOverlay />
+
+        {addTaskModalVisible && (
+          <AddTaskModal
+            visible={addTaskModalVisible}
+            dayOfWeek={selectedDay}
+            timeOfDay={selectedTimeOfDay}
+            onClose={() => setAddTaskModalVisible(false)}
+            onAdd={handleAddTask}
+          />
+        )}
+
+        <TaskActionModal
+          visible={actionModalVisible}
+          task={selectedTask}
+          onClose={() => {
+            setActionModalVisible(false);
+            setSelectedTask(null);
+          }}
+          onSave={handleSaveTask}
+        />
+
+        <SettingsModal
+          visible={settingsModalVisible}
+          onClose={() => setSettingsModalVisible(false)}
+          showTasks={settings.showTasks}
+          showCalendarEvents={settings.showCalendarEvents}
+          onToggleShowTasks={toggleShowTasks}
+          onToggleShowCalendarEvents={toggleShowCalendarEvents}
+          isCalendarConnected={isCalendarConnected}
+          onConnectCalendar={connectGoogleCalendar}
+          onDisconnectCalendar={disconnectGoogleCalendar}
         />
       </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {DAYS.map(day => (
-          <DayColumn
-            key={day}
-            dayOfWeek={day}
-            tasks={getDayTasks(day)}
-            calendarEvents={getDayCalendarEvents(day)}
-            onToggleTask={toggleTask}
-            getChildTasks={getChildTasksForWeek}
-            onAddTask={handleOpenAddTaskModal}
-            onEditTask={handleOpenEditModal}
-            onDeleteTask={deleteTask}
-          />
-        ))}
-      </ScrollView>
-
-      {addTaskModalVisible && (
-        <AddTaskModal
-          visible={addTaskModalVisible}
-          dayOfWeek={selectedDay}
-          timeOfDay={selectedTimeOfDay}
-          onClose={() => setAddTaskModalVisible(false)}
-          onAdd={handleAddTask}
-        />
-      )}
-
-      <TaskActionModal
-        visible={actionModalVisible}
-        task={selectedTask}
-        onClose={() => {
-          setActionModalVisible(false);
-          setSelectedTask(null);
-        }}
-        onSave={handleSaveTask}
-      />
-
-      <SettingsModal
-        visible={settingsModalVisible}
-        onClose={() => setSettingsModalVisible(false)}
-        showTasks={settings.showTasks}
-        showCalendarEvents={settings.showCalendarEvents}
-        onToggleShowTasks={toggleShowTasks}
-        onToggleShowCalendarEvents={toggleShowCalendarEvents}
-        isCalendarConnected={isCalendarConnected}
-        onConnectCalendar={connectGoogleCalendar}
-        onDisconnectCalendar={disconnectGoogleCalendar}
-      />
-    </View>
+    </DragProvider>
   );
 }
 

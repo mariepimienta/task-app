@@ -207,6 +207,13 @@ export function useTasks() {
     [tasks]
   );
 
+  const moveTask = useCallback(
+    async (taskId: string, newDay: DayOfWeek) => {
+      await updateTaskDetails(taskId, { dayOfWeek: newDay });
+    },
+    [updateTaskDetails]
+  );
+
   return {
     tasks,
     loading,
@@ -224,5 +231,6 @@ export function useTasks() {
     deleteWeek,
     updateAllWeeksFromTemplate,
     reorderTasks,
+    moveTask,
   };
 }
